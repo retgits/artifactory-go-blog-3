@@ -1,39 +1,33 @@
 workflow "New workflow" {
   on = "push"
-  resolves = ["Step4 - Run app"]
+  resolves = ["Step3 - Publish Build Info"]
 }
 
-action "Step1 - Get sources" {
+action "Step1 - Publish package" {
   uses = "retgits/actions/jfrog-cli-go@master"
   secrets = ["URL", "USER", "PASSWORD"]
   env = {
-    COMMAND = "go build go --no-registry"
     CRED = "username"
+    COMMAND = "go-publish go v1.0.0 --build-name=my-build --build-number=1"
   }
 }
 
-action "Step2 - Publish modules" {
+action "Step2 - Collect Build Info" {
   uses = "retgits/actions/jfrog-cli-go@master"
-  needs = ["Step1 - Get sources"]
   secrets = ["URL", "USER", "PASSWORD"]
   env = {
-    COMMAND = "go-publish go --self=false --deps=all"
     CRED = "username"
+    COMMAND = "build-collect-env my-build 1"
   }
+  needs = ["Step1 - Publish package"]
 }
 
-action "Step3 - Build Info" {
+action "Step3 - Publish Build Info" {
   uses = "retgits/actions/jfrog-cli-go@master"
-  needs = ["Step2 - Publish modules"]
   secrets = ["URL", "USER", "PASSWORD"]
   env = {
-    COMMAND = "go build go --build-name=my-build --build-number=1"
     CRED = "username"
+    COMMAND = "build-publish my-build 1"
   }
-}
-
-action "Step4 - Run app" {
-  uses = "actions/bin/sh@master"
-  needs = ["Step3 - Build Info"]
-  args = "./hello"
+  needs = ["Step2 - Collect Build Info"]
 }
